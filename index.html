@@ -8,26 +8,27 @@
 </head>
 <body>
   <main class="game-shell">
+    <div id="effectLayer" class="effect-layer" aria-hidden="true"></div>
     <section class="hero" id="homeScreen">
       <div class="cloud cloud-one"></div>
       <div class="cloud cloud-two"></div>
       <div class="hero-copy">
         <p class="eyebrow">字灵岛冒险</p>
         <h1>呦呦的汉字小勇士</h1>
-        <p>收集字灵、点亮图鉴、打开宝箱。每一关都是一次小冒险。</p>
+        <p>字灵躲进彩色小岛啦。呦呦出发，找汉字、攒贴纸、砰地打开宝箱！</p>
         <label for="playerName">小勇士名字</label>
         <input id="playerName" type="text" value="呦呦" maxlength="8">
         <div class="hero-actions">
-          <button id="startGameBtn" class="primary-btn" type="button">开始冒险</button>
-          <button id="reviewBtn" class="ghost-btn" type="button">复习错题</button>
+          <button id="startGameBtn" class="primary-btn" type="button">冲呀，出发</button>
+          <button id="reviewBtn" class="ghost-btn" type="button">抓回调皮字</button>
           <button id="voiceBtn" class="ghost-btn" type="button">语音包：关</button>
           <button id="musicBtn" class="ghost-btn" type="button">音乐：开</button>
         </div>
         <p id="musicNameText" class="music-name">本次音乐：字灵出发</p>
         <div class="home-dashboard">
           <div>
-            <span>今日任务</span>
-            <strong id="dailyTaskText">收集 5 个字灵</strong>
+            <span>今日小任务</span>
+            <strong id="dailyTaskText">找回 5 个字灵</strong>
           </div>
           <div>
             <span>连续学习</span>
@@ -52,7 +53,7 @@
     <section class="game-screen hidden" id="gameScreen">
       <header class="top-bar">
         <div>
-          <p class="eyebrow">当前关卡</p>
+          <p class="eyebrow">字灵小岛</p>
           <h2 id="levelName">字灵森林</h2>
         </div>
         <div class="stats">
@@ -79,7 +80,7 @@
       <section class="answers" id="answers" aria-label="答案选项"></section>
 
       <section class="feedback-panel">
-        <p id="feedbackText">准备好了吗？呦呦小勇士出发！</p>
+        <p id="feedbackText">小背包准备好，呦呦要出发啦！</p>
         <div class="reward-track">
           <div id="energyFill" class="energy-fill"></div>
         </div>
@@ -89,14 +90,14 @@
     <section class="collection-screen hidden" id="collectionScreen">
       <div class="collection-head">
         <div>
-          <p class="eyebrow">汉字图鉴</p>
-          <h2>呦呦收集到的字灵</h2>
+          <p class="eyebrow">闪闪图鉴</p>
+          <h2>呦呦抓到的字灵朋友</h2>
         </div>
         <button id="playAgainBtn" class="primary-btn" type="button">再闯一关</button>
         <button id="backHomeBtn" class="ghost-btn" type="button">回首页</button>
       </div>
       <div class="summary-box">
-        <strong id="summaryTitle">宝箱打开啦！</strong>
+        <strong id="summaryTitle">宝箱砰地打开啦！</strong>
         <span id="summaryText">本关表现会出现在这里。</span>
       </div>
       <div class="report-grid">
@@ -105,7 +106,7 @@
           <strong id="todayAnsweredText">0</strong>
         </div>
         <div>
-          <span>错题复习池</span>
+          <span>调皮字小窝</span>
           <strong id="reviewCountText">0</strong>
         </div>
         <div>

@@ -1,6 +1,7 @@
 const homeScreen = document.getElementById("homeScreen");
 const gameScreen = document.getElementById("gameScreen");
 const collectionScreen = document.getElementById("collectionScreen");
+const effectLayer = document.getElementById("effectLayer");
 const playerNameInput = document.getElementById("playerName");
 const startGameBtn = document.getElementById("startGameBtn");
 const reviewBtn = document.getElementById("reviewBtn");
@@ -180,7 +181,7 @@ function addSticker(reason) {
 function updateHomeDashboard() {
   ensureToday();
   const remaining = Math.max(0, 5 - (dailyStats.collected || 0));
-  dailyTaskText.textContent = remaining === 0 ? "完成啦，开宝箱！" : `再收集 ${remaining} 个字灵`;
+  dailyTaskText.textContent = remaining === 0 ? "任务亮晶晶完成！" : `还差 ${remaining} 个字灵`;
   streakText.textContent = `${dailyStats.streak || 1} 天`;
   stickerText.textContent = `${stickers.length} 枚`;
   saveProgress();
@@ -340,6 +341,20 @@ function playSound(type) {
     tone(1568, 0.24, 0.12, 0.1, "sine");
     noiseTick(0.18, 0.09, 0.05);
   }
+  if (type === "excellent") {
+    tone(784, 0, 0.09, 0.14, "triangle");
+    tone(988, 0.08, 0.09, 0.14, "triangle");
+    tone(1319, 0.18, 0.16, 0.15, "triangle");
+    tone(1760, 0.32, 0.18, 0.12, "sine");
+    noiseTick(0.12, 0.09, 0.055);
+    noiseTick(0.3, 0.12, 0.07);
+  }
+  if (type === "monster") {
+    tone(150, 0, 0.12, 0.12, "sawtooth");
+    tone(120, 0.1, 0.16, 0.11, "sawtooth");
+    tone(95, 0.24, 0.22, 0.1, "sawtooth");
+    noiseTick(0.05, 0.12, 0.04);
+  }
   if (type === "wrong") {
     tone(220, 0, 0.12, 0.08, "sine");
     tone(196, 0.11, 0.16, 0.055, "sine");
@@ -362,6 +377,51 @@ function playSound(type) {
     tone(1319, 0.16, 0.2, 0.12, "triangle");
     noiseTick(0.08, 0.12, 0.06);
   }
+}
+
+function clearEffectNode(node, delay = 1000) {
+  window.setTimeout(() => node.remove(), delay);
+}
+
+function centerOfElement(element) {
+  const rect = element.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2
+  };
+}
+
+function burstAt(element, kind = "correct") {
+  const center = centerOfElement(element);
+  const pieces = kind === "level"
+    ? ["⭐", "🌟", "🎀", "🍬", "💎", "🎈", "Excellent!", "✨"]
+    : ["⭐", "🌟", "✨", "🎀", "Excellent!", "💫"];
+
+  pieces.forEach((piece, index) => {
+    const node = document.createElement("div");
+    const angle = (Math.PI * 2 * index) / pieces.length;
+    const distance = kind === "level" ? 160 + Math.random() * 120 : 80 + Math.random() * 80;
+    node.className = "burst-piece";
+    node.textContent = piece;
+    node.style.left = `${center.x - 15}px`;
+    node.style.top = `${center.y - 15}px`;
+    node.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+    node.style.setProperty("--dy", `${Math.sin(angle) * distance - 70}px`);
+    node.style.setProperty("--rot", `${Math.random() * 220 - 110}deg`);
+    effectLayer.appendChild(node);
+    clearEffectNode(node, 900);
+  });
+}
+
+function monsterAt(element) {
+  const center = centerOfElement(element);
+  const node = document.createElement("div");
+  node.className = "monster-pop";
+  node.textContent = "嘿";
+  node.style.left = `${center.x - 43}px`;
+  node.style.top = `${center.y - 108}px`;
+  effectLayer.appendChild(node);
+  clearEffectNode(node, 1000);
 }
 
 function renderMap() {
@@ -432,18 +492,18 @@ function showQuestion() {
 
   if (mode === "听音选字") {
     promptArt.textContent = "🔊";
-    promptText.textContent = `听一听，${playerName()}要找到哪个字？`;
-    setTimeout(() => speak(`${playerName()}，请选择：${item.meaning}`), 220);
+    promptText.textContent = `小耳朵竖起来，${playerName()}要找哪个字灵？`;
+    setTimeout(() => speak(`${playerName()}，听好啦：${item.meaning}`), 220);
   }
 
   if (mode === "拼音选字") {
     promptArt.textContent = item.pinyin;
-    promptText.textContent = `拼音 ${item.pinyin}，对应哪个汉字？`;
+    promptText.textContent = `拼音小星星是 ${item.pinyin}，它在叫哪个字？`;
   }
 
   if (mode === "找相同字") {
     promptArt.textContent = item.char;
-    promptText.textContent = `找到和大卡片一样的字。`;
+    promptText.textContent = `大字灵站出来啦，快找到它的小伙伴。`;
   }
 
   answers.innerHTML = currentQuestion.options.map((option) => `
@@ -471,18 +531,20 @@ function checkAnswer(button) {
     collected.add(correct);
     dailyStats.collected += 1;
     reviewPool = reviewPool.filter((char) => char !== correct);
-    feedbackText.textContent = `${playerName()}答对啦！收集到「${correct}」字灵。`;
+    feedbackText.textContent = `Excellent！「${correct}」字灵跳进${playerName()}的小背包！`;
     playSound("correct");
+    playSound("excellent");
+    burstAt(button);
 
     if (combo >= 5) {
       const sticker = addSticker("五连击");
-      feedbackText.textContent = `${playerName()}五连击！奖励贴纸 ${sticker}`;
+      feedbackText.textContent = `哇！${playerName()}五连闪光！贴纸 ${sticker} 飞来啦！`;
       playSound("combo");
       playVoice("combo", `${playerName()}进入闪光模式，连续答对 ${combo} 个！`);
     } else if (combo >= 3) {
       playVoice("combo", `${playerName()}三连击，太棒啦！`);
     } else {
-      playVoice("correct", `${playerName()}，答对啦！${item.char}，${item.words}`);
+      playVoice("correct", `Excellent！${playerName()}答对啦！${item.char}，${item.words}`);
     }
 
     saveProgress();
@@ -503,11 +565,15 @@ function checkAnswer(button) {
     if (mistakes % 2 === 0 && wrongButtons.length > 1) {
       wrongButtons[0].disabled = true;
       wrongButtons[0].style.opacity = "0.35";
-      feedbackText.textContent = `${playerName()}差一点点，我帮你去掉一个干扰项。`;
-      playVoice("wrong", `${playerName()}差一点点，再看一看。`);
+      feedbackText.textContent = `小怪兽眨眼捣乱！别急，帮${playerName()}吹走一个迷雾选项。`;
+      playSound("monster");
+      monsterAt(button);
+      playVoice("wrong", `小怪兽捣乱啦，${playerName()}再看一看。`);
     } else {
-      feedbackText.textContent = `没关系，${playerName()}再试一次。`;
-      playVoice("wrong", `没关系，${playerName()}，再试一次。`);
+      feedbackText.textContent = `小怪兽嘿嘿笑了一下，${playerName()}再点一次试试。`;
+      playSound("monster");
+      monsterAt(button);
+      playVoice("wrong", `嘿嘿，差一点点，${playerName()}再试一次。`);
     }
 
     comboText.textContent = `连击 ${combo}`;
@@ -527,13 +593,14 @@ function finishLevel() {
   if ((dailyStats.collected || 0) >= 5) {
     addSticker("每日任务");
   }
-  summaryTitle.textContent = `宝箱打开啦！${playerName()}获得 ${stars} 颗星`;
-  summaryText.textContent = `本关答对 ${score} 个字，获得 ${roundStickers} 枚贴纸，图鉴已经收集 ${collected.size} 个字灵。`;
+  summaryTitle.textContent = `宝箱砰地打开！${playerName()}拿到 ${stars} 颗星`;
+  summaryText.textContent = `这一趟抓到 ${score} 个字灵，贴纸飞来 ${roundStickers} 枚，图鉴亮起 ${collected.size} 个小伙伴。`;
   renderCollection();
   renderReport();
   updateHomeDashboard();
   saveProgress();
   playSound("level");
+  burstAt(summaryTitle, "level");
   playVoice("complete", `恭喜${playerName()}，通关啦！字灵岛为${playerName()}放烟花啦！`);
 }
 
@@ -569,15 +636,15 @@ function startLevel() {
   mistakes = 0;
   roundStickers = 0;
   roundQuestions = buildQuestions();
-  levelName.textContent = isReviewMode ? "错题复习岛" : levels[currentLevel].name;
+  levelName.textContent = isReviewMode ? "调皮字回收岛" : levels[currentLevel].name;
   homeScreen.classList.add("hidden");
   collectionScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
   renderMap();
-  feedbackText.textContent = isReviewMode ? `${playerName()}小勇士，复习错题也能收集贴纸！` : `${playerName()}小勇士，新的字灵关卡开始啦！`;
+  feedbackText.textContent = isReviewMode ? `${playerName()}小勇士，去把调皮字灵请回来！` : `${playerName()}小勇士，新的小岛亮起来啦！`;
   playSound("click");
   startMusic();
-  playVoice("start", isReviewMode ? `${playerName()}小勇士，欢迎来到错题复习岛。我们把调皮的字灵找回来！` : `${playerName()}小勇士，欢迎来到${levels[currentLevel].name}，我们出发啦！`);
+  playVoice("start", isReviewMode ? `${playerName()}小勇士，欢迎来到调皮字回收岛。我们把字灵找回来！` : `${playerName()}小勇士，欢迎来到${levels[currentLevel].name}，我们出发啦！`);
   window.scrollTo({ top: 0, behavior: "smooth" });
   showQuestion();
 }
@@ -615,7 +682,7 @@ voiceBtn.addEventListener("click", () => {
   saveProgress();
   playSound("click");
   if (voiceEnabled) {
-    speak(`${playerName()}，语音已经打开啦。`);
+    speak(`${playerName()}，语音包醒来啦。`);
   }
 });
 
@@ -636,7 +703,7 @@ musicBtn.addEventListener("click", () => {
 speakBtn.addEventListener("click", () => {
   playSound("click");
   if (currentQuestion) {
-    speak(`${playerName()}，这个字是：${currentQuestion.item.meaning}。${currentQuestion.item.words}`);
+    speak(`${playerName()}，听听这个字灵：${currentQuestion.item.meaning}。${currentQuestion.item.words}`);
   }
 });
 
