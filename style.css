@@ -125,6 +125,13 @@ input {
   margin-top: 18px;
 }
 
+.music-name {
+  margin: 12px 0 0;
+  color: #56708d;
+  font-size: 16px;
+  font-weight: 900;
+}
+
 .home-dashboard,
 .report-grid {
   display: grid;

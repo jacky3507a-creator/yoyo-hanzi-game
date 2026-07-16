@@ -5,6 +5,8 @@ const playerNameInput = document.getElementById("playerName");
 const startGameBtn = document.getElementById("startGameBtn");
 const reviewBtn = document.getElementById("reviewBtn");
 const voiceBtn = document.getElementById("voiceBtn");
+const musicBtn = document.getElementById("musicBtn");
+const musicNameText = document.getElementById("musicNameText");
 const homeBtn = document.getElementById("homeBtn");
 const levelName = document.getElementById("levelName");
 const mapStrip = document.getElementById("mapStrip");
@@ -102,14 +104,26 @@ let currentQuestion = null;
 let roundQuestions = [];
 let collected = new Set(JSON.parse(localStorage.getItem("yoyoCollected") || "[]"));
 let reviewPool = JSON.parse(localStorage.getItem("yoyoReviewPool") || "[]");
-let voiceEnabled = localStorage.getItem("yoyoVoiceEnabled") !== "false";
+let voiceEnabled = localStorage.getItem("yoyoVoiceEnabled") === "true";
+let musicEnabled = localStorage.getItem("yoyoMusicEnabled") !== "false";
 let audioContext = null;
+let musicTimer = null;
+let musicStep = 0;
+let currentSongIndex = Number(localStorage.getItem("yoyoSongIndex") || 0);
 let stickers = JSON.parse(localStorage.getItem("yoyoStickers") || "[]");
 let dailyStats = JSON.parse(localStorage.getItem("yoyoDailyStats") || "{}");
 let roundStickers = 0;
 let isReviewMode = false;
 
 const stickerPrizes = ["⭐", "🌸", "🍬", "🎈", "💎", "🏅", "🌟", "🎀", "🍭", "🚀", "🌈", "👑"];
+
+const songs = [
+  { name: "字灵出发", melody: [523, 659, 784, 659, 587, 698, 880, 698], bass: [262, 392, 330, 392], speed: 360 },
+  { name: "糖果跳跳", melody: [659, 784, 988, 784, 659, 587, 659, 784], bass: [330, 494, 392, 494], speed: 320 },
+  { name: "星星小跑", melody: [784, 880, 988, 1175, 988, 880, 784, 659], bass: [392, 523, 392, 587], speed: 340 },
+  { name: "海边泡泡", melody: [523, 587, 659, 587, 523, 440, 523, 659], bass: [262, 349, 294, 349], speed: 420 },
+  { name: "宝箱派对", melody: [587, 740, 880, 988, 880, 740, 659, 740], bass: [294, 440, 370, 440], speed: 300 }
+];
 
 function playerName() {
   return playerNameInput.value.trim() || "呦呦";
@@ -119,6 +133,7 @@ function saveProgress() {
   localStorage.setItem("yoyoCollected", JSON.stringify([...collected]));
   localStorage.setItem("yoyoReviewPool", JSON.stringify(reviewPool.slice(-30)));
   localStorage.setItem("yoyoVoiceEnabled", String(voiceEnabled));
+  localStorage.setItem("yoyoMusicEnabled", String(musicEnabled));
   localStorage.setItem("yoyoStickers", JSON.stringify(stickers.slice(-80)));
   localStorage.setItem("yoyoDailyStats", JSON.stringify(dailyStats));
 }
@@ -203,22 +218,62 @@ function tone(freq, offset, duration, volume = 0.1, type = "sine") {
   oscillator.stop(start + duration + 0.03);
 }
 
+function stopMusic() {
+  clearInterval(musicTimer);
+  musicTimer = null;
+}
+
+function chooseNextSong() {
+  const nextIndex = songs.length <= 1 ? 0 : (currentSongIndex + 1 + Math.floor(Math.random() * (songs.length - 1))) % songs.length;
+  currentSongIndex = nextIndex;
+  localStorage.setItem("yoyoSongIndex", String(currentSongIndex));
+  musicStep = 0;
+  musicNameText.textContent = `本次音乐：${songs[currentSongIndex].name}`;
+}
+
+function startMusic() {
+  if (!musicEnabled || musicTimer) return;
+
+  unlockAudio();
+  const song = songs[currentSongIndex];
+  musicTimer = setInterval(() => {
+    const note = song.melody[musicStep % song.melody.length];
+    const bass = song.bass[musicStep % song.bass.length];
+    tone(note, 0, 0.12, 0.035, "triangle");
+    tone(bass, 0, 0.16, 0.018, "sine");
+    musicStep += 1;
+  }, song.speed);
+}
+
 function playSound(type) {
   unlockAudio();
+  if (type === "tap") {
+    tone(740, 0, 0.035, 0.055, "square");
+  }
   if (type === "correct") {
-    tone(620, 0, 0.1, 0.12, "triangle");
-    tone(820, 0.11, 0.15, 0.11, "triangle");
+    tone(660, 0, 0.08, 0.12, "triangle");
+    tone(880, 0.08, 0.1, 0.12, "triangle");
+    tone(1175, 0.18, 0.18, 0.13, "triangle");
+    tone(1568, 0.24, 0.12, 0.08, "sine");
   }
   if (type === "wrong") {
-    tone(180, 0, 0.18, 0.09, "sine");
+    tone(220, 0, 0.12, 0.08, "sine");
+    tone(196, 0.11, 0.16, 0.055, "sine");
   }
   if (type === "level") {
-    tone(520, 0, 0.12, 0.12, "triangle");
-    tone(660, 0.13, 0.12, 0.12, "triangle");
-    tone(880, 0.27, 0.25, 0.13, "triangle");
+    tone(523, 0, 0.12, 0.12, "triangle");
+    tone(659, 0.13, 0.12, 0.12, "triangle");
+    tone(784, 0.26, 0.12, 0.12, "triangle");
+    tone(1047, 0.42, 0.32, 0.13, "triangle");
+    tone(1319, 0.5, 0.22, 0.08, "sine");
   }
   if (type === "click") {
     tone(360, 0, 0.06, 0.05, "sine");
+  }
+  if (type === "combo") {
+    tone(784, 0, 0.08, 0.11, "triangle");
+    tone(988, 0.08, 0.08, 0.11, "triangle");
+    tone(1319, 0.16, 0.2, 0.12, "triangle");
   }
 }
 
@@ -316,6 +371,7 @@ function showQuestion() {
 }
 
 function checkAnswer(button) {
+  playSound("tap");
   const chosen = button.dataset.char;
   const correct = currentQuestion.item.char;
   const item = currentQuestion.item;
@@ -334,6 +390,7 @@ function checkAnswer(button) {
     if (combo >= 5) {
       const sticker = addSticker("五连击");
       feedbackText.textContent = `${playerName()}五连击！奖励贴纸 ${sticker}`;
+      playSound("combo");
       speak(`${playerName()}进入闪光模式，连续答对 ${combo} 个！`);
     } else if (combo >= 3) {
       speak(`${playerName()}三连击，太棒啦！`);
@@ -417,6 +474,8 @@ function renderCollection() {
 
 function startLevel() {
   ensureToday();
+  stopMusic();
+  chooseNextSong();
   roundIndex = 0;
   score = 0;
   combo = 0;
@@ -430,6 +489,7 @@ function startLevel() {
   renderMap();
   feedbackText.textContent = isReviewMode ? `${playerName()}小勇士，复习错题也能收集贴纸！` : `${playerName()}小勇士，新的字灵关卡开始啦！`;
   playSound("click");
+  startMusic();
   speak(isReviewMode ? `${playerName()}小勇士，欢迎来到错题复习岛。我们把调皮的字灵找回来！` : `${playerName()}小勇士，欢迎来到${levels[currentLevel].name}，我们出发啦！`);
   window.scrollTo({ top: 0, behavior: "smooth" });
   showQuestion();
@@ -472,6 +532,20 @@ voiceBtn.addEventListener("click", () => {
   }
 });
 
+musicBtn.addEventListener("click", () => {
+  musicEnabled = !musicEnabled;
+  musicBtn.textContent = musicEnabled ? "音乐：开" : "音乐：关";
+  musicNameText.textContent = `本次音乐：${songs[currentSongIndex].name}`;
+  saveProgress();
+  playSound("click");
+
+  if (musicEnabled) {
+    startMusic();
+  } else {
+    stopMusic();
+  }
+});
+
 speakBtn.addEventListener("click", () => {
   playSound("click");
   if (currentQuestion) {
@@ -488,6 +562,7 @@ function init() {
     localStorage.setItem("yoyoPlayerName", playerName());
   });
   voiceBtn.textContent = voiceEnabled ? "语音：开" : "语音：关";
+  musicBtn.textContent = musicEnabled ? "音乐：开" : "音乐：关";
   renderMap();
   renderCollection();
   renderReport();
