@@ -197,9 +197,9 @@ function speak(text) {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text.replace(/，/g, "，  ").replace(/。/g, "。  "));
   utterance.lang = "zh-CN";
-  utterance.rate = 0.82;
-  utterance.pitch = 1.22;
-  utterance.volume = 0.95;
+  utterance.rate = 0.72;
+  utterance.pitch = 1.36;
+  utterance.volume = 0.86;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -215,7 +215,39 @@ function playVoice(kind, fallbackText) {
   if (files.length) {
     const file = files[Math.floor(Math.random() * files.length)];
     const audio = playAudioFile(file, 1);
-    audio.addEventListener("error", () => speak(fallbackText), { once: true });
+    audio.addEventListener("error", () => playVoiceCue(kind, fallbackText), { once: true });
+    return;
+  }
+
+  playVoiceCue(kind, fallbackText);
+}
+
+function playVoiceCue(kind, fallbackText) {
+  if (!voiceEnabled) return;
+  unlockAudio();
+
+  if (kind === "correct") {
+    singNotes([988, 1175, 1319, 1568, 2093], 0.075, 0.16, "triangle");
+    crowdCheer(0.12, 0.36, 0.09);
+    return;
+  }
+
+  if (kind === "combo") {
+    cheerText("连击闪光！", "combo-cheer");
+    singNotes([784, 988, 1175, 1568, 1976, 2349], 0.065, 0.14, "triangle");
+    crowdCheer(0.18, 0.4, 0.08);
+    return;
+  }
+
+  if (kind === "wrong") {
+    monsterVoice();
+    return;
+  }
+
+  if (kind === "complete") {
+    cheerText("放烟花啦！", "firework-cheer");
+    singNotes([523, 659, 784, 1047, 1319, 1568, 2093], 0.085, 0.18, "triangle");
+    crowdCheer(0.15, 0.75, 0.12);
     return;
   }
 
@@ -245,6 +277,63 @@ function tone(freq, offset, duration, volume = 0.1, type = "sine") {
   gain.connect(audioContext.destination);
   oscillator.start(start);
   oscillator.stop(start + duration + 0.03);
+}
+
+function slideTone(from, to, offset, duration, volume = 0.08, type = "sine") {
+  if (!audioContext) return;
+  const start = audioContext.currentTime + offset;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(from, start);
+  oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, to), start + duration);
+  gain.gain.setValueAtTime(0.001, start);
+  gain.gain.linearRampToValueAtTime(volume, start + 0.025);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration + 0.02);
+}
+
+function singNotes(notes, gap = 0.08, duration = 0.14, type = "triangle") {
+  notes.forEach((note, index) => {
+    tone(note, index * gap, duration, 0.11, type);
+    tone(note * 2, index * gap + 0.015, duration * 0.65, 0.035, "sine");
+  });
+}
+
+function crowdCheer(offset = 0, duration = 0.35, volume = 0.08) {
+  if (!audioContext) return;
+  const start = audioContext.currentTime + offset;
+  const bufferSize = audioContext.sampleRate * duration;
+  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i += 1) {
+    const fade = Math.sin((Math.PI * i) / bufferSize);
+    data[i] = (Math.random() * 2 - 1) * fade;
+  }
+  const source = audioContext.createBufferSource();
+  const filter = audioContext.createBiquadFilter();
+  const gain = audioContext.createGain();
+  source.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(1800, start);
+  filter.Q.setValueAtTime(0.85, start);
+  gain.gain.setValueAtTime(volume, start);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioContext.destination);
+  source.start(start);
+  source.stop(start + duration);
+}
+
+function monsterVoice() {
+  slideTone(170, 95, 0, 0.18, 0.13, "sawtooth");
+  slideTone(130, 210, 0.15, 0.16, 0.09, "square");
+  slideTone(95, 70, 0.32, 0.2, 0.12, "sawtooth");
+  noiseTick(0.08, 0.12, 0.06);
 }
 
 function noiseTick(offset, duration, volume = 0.035) {
@@ -342,12 +431,11 @@ function playSound(type) {
     noiseTick(0.18, 0.09, 0.05);
   }
   if (type === "excellent") {
-    tone(784, 0, 0.09, 0.14, "triangle");
-    tone(988, 0.08, 0.09, 0.14, "triangle");
-    tone(1319, 0.18, 0.16, 0.15, "triangle");
-    tone(1760, 0.32, 0.18, 0.12, "sine");
-    noiseTick(0.12, 0.09, 0.055);
-    noiseTick(0.3, 0.12, 0.07);
+    singNotes([784, 988, 1175, 1568, 1976], 0.07, 0.15, "triangle");
+    slideTone(1400, 2300, 0.06, 0.16, 0.055, "sine");
+    crowdCheer(0.16, 0.28, 0.075);
+    noiseTick(0.12, 0.09, 0.06);
+    noiseTick(0.34, 0.14, 0.08);
   }
   if (type === "monster") {
     tone(150, 0, 0.12, 0.12, "sawtooth");
@@ -411,6 +499,56 @@ function burstAt(element, kind = "correct") {
     effectLayer.appendChild(node);
     clearEffectNode(node, 900);
   });
+}
+
+function cheerText(text, className = "excellent-cheer") {
+  const node = document.createElement("div");
+  node.className = `cheer-pop ${className}`;
+  node.textContent = text;
+  node.style.left = `${Math.max(18, Math.min(window.innerWidth - 220, window.innerWidth / 2 - 110))}px`;
+  node.style.top = `${Math.max(80, window.innerHeight * 0.2)}px`;
+  effectLayer.appendChild(node);
+  clearEffectNode(node, 1200);
+}
+
+function fireworkAt(x, y, color = "#ffdf4f") {
+  const core = document.createElement("div");
+  core.className = "firework-core";
+  core.style.left = `${x}px`;
+  core.style.top = `${y}px`;
+  core.style.background = color;
+  effectLayer.appendChild(core);
+  clearEffectNode(core, 780);
+
+  const sparks = 22;
+  for (let index = 0; index < sparks; index += 1) {
+    const spark = document.createElement("div");
+    const angle = (Math.PI * 2 * index) / sparks;
+    const distance = 72 + Math.random() * 92;
+    spark.className = "firework-spark";
+    spark.style.left = `${x}px`;
+    spark.style.top = `${y}px`;
+    spark.style.background = color;
+    spark.style.boxShadow = `0 0 14px ${color}`;
+    spark.style.setProperty("--fx", `${Math.cos(angle) * distance}px`);
+    spark.style.setProperty("--fy", `${Math.sin(angle) * distance}px`);
+    effectLayer.appendChild(spark);
+    clearEffectNode(spark, 980);
+  }
+}
+
+function launchFireworks(count = 6) {
+  const colors = ["#ff4f8b", "#ffd84f", "#58d7ff", "#8bff7a", "#b56dff", "#ff8a3d"];
+  for (let index = 0; index < count; index += 1) {
+    window.setTimeout(() => {
+      const x = window.innerWidth * (0.16 + Math.random() * 0.68);
+      const y = window.innerHeight * (0.14 + Math.random() * 0.42);
+      fireworkAt(x, y, colors[index % colors.length]);
+      tone(220 + index * 45, 0, 0.08, 0.055, "sine");
+      slideTone(600 + index * 60, 1500 + index * 110, 0.02, 0.18, 0.04, "triangle");
+      noiseTick(0.08, 0.18, 0.08);
+    }, index * 260);
+  }
 }
 
 function monsterAt(element) {
@@ -534,7 +672,12 @@ function checkAnswer(button) {
     feedbackText.textContent = `Excellent！「${correct}」字灵跳进${playerName()}的小背包！`;
     playSound("correct");
     playSound("excellent");
+    cheerText("Excellent!", "excellent-cheer");
     burstAt(button);
+    if (combo >= 3) {
+      const center = centerOfElement(button);
+      fireworkAt(center.x, Math.max(90, center.y - 130), "#ffd84f");
+    }
 
     if (combo >= 5) {
       const sticker = addSticker("五连击");
@@ -568,11 +711,13 @@ function checkAnswer(button) {
       feedbackText.textContent = `小怪兽眨眼捣乱！别急，帮${playerName()}吹走一个迷雾选项。`;
       playSound("monster");
       monsterAt(button);
+      cheerText("小怪兽：嘿嘿！", "monster-cheer");
       playVoice("wrong", `小怪兽捣乱啦，${playerName()}再看一看。`);
     } else {
       feedbackText.textContent = `小怪兽嘿嘿笑了一下，${playerName()}再点一次试试。`;
       playSound("monster");
       monsterAt(button);
+      cheerText("差一点点！", "monster-cheer");
       playVoice("wrong", `嘿嘿，差一点点，${playerName()}再试一次。`);
     }
 
@@ -601,6 +746,7 @@ function finishLevel() {
   saveProgress();
   playSound("level");
   burstAt(summaryTitle, "level");
+  launchFireworks(8);
   playVoice("complete", `恭喜${playerName()}，通关啦！字灵岛为${playerName()}放烟花啦！`);
 }
 
