@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>呦呦的字灵岛冒险</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game-shell">
+    <section class="hero" id="homeScreen">
+      <div class="cloud cloud-one"></div>
+      <div class="cloud cloud-two"></div>
+      <div class="hero-copy">
+        <p class="eyebrow">字灵岛冒险</p>
+        <h1>呦呦的汉字小勇士</h1>
+        <p>收集字灵、点亮图鉴、打开宝箱。每一关都是一次小冒险。</p>
+        <label for="playerName">小勇士名字</label>
+        <input id="playerName" type="text" value="呦呦" maxlength="8">
+        <div class="hero-actions">
+          <button id="startGameBtn" class="primary-btn" type="button">开始冒险</button>
+          <button id="reviewBtn" class="ghost-btn" type="button">复习错题</button>
+          <button id="voiceBtn" class="ghost-btn" type="button">语音：开</button>
+        </div>
+        <div class="home-dashboard">
+          <div>
+            <span>今日任务</span>
+            <strong id="dailyTaskText">收集 5 个字灵</strong>
+          </div>
+          <div>
+            <span>连续学习</span>
+            <strong id="streakText">0 天</strong>
+          </div>
+          <div>
+            <span>贴纸</span>
+            <strong id="stickerText">0 枚</strong>
+          </div>
+        </div>
+      </div>
+      <div class="island-scene" aria-hidden="true">
+        <div class="sun"></div>
+        <div class="island">
+          <div class="tree trunk"></div>
+          <div class="tree top"></div>
+          <div class="word-gem">字</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="game-screen hidden" id="gameScreen">
+      <header class="top-bar">
+        <div>
+          <p class="eyebrow">当前关卡</p>
+          <h2 id="levelName">字灵森林</h2>
+        </div>
+        <div class="stats">
+          <button id="homeBtn" class="mini-btn" type="button">首页</button>
+          <span id="scoreText">星星 0</span>
+          <span id="comboText">连击 0</span>
+          <span id="stickerRoundText">贴纸 0</span>
+          <span id="progressText">1 / 10</span>
+        </div>
+      </header>
+
+      <section class="map-strip" id="mapStrip" aria-label="主题地图"></section>
+
+      <section class="challenge-card" id="challengeCard">
+        <div class="mascot" aria-hidden="true">
+          <div class="mascot-face">灵</div>
+        </div>
+        <p id="questionType" class="question-type">看提示选汉字</p>
+        <div id="promptArt" class="prompt-art">☀</div>
+        <p id="promptText" class="prompt-text">太阳升起来啦，这个字是？</p>
+        <button id="speakBtn" class="listen-btn" type="button">听一听</button>
+      </section>
+
+      <section class="answers" id="answers" aria-label="答案选项"></section>
+
+      <section class="feedback-panel">
+        <p id="feedbackText">准备好了吗？呦呦小勇士出发！</p>
+        <div class="reward-track">
+          <div id="energyFill" class="energy-fill"></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="collection-screen hidden" id="collectionScreen">
+      <div class="collection-head">
+        <div>
+          <p class="eyebrow">汉字图鉴</p>
+          <h2>呦呦收集到的字灵</h2>
+        </div>
+        <button id="playAgainBtn" class="primary-btn" type="button">再闯一关</button>
+        <button id="backHomeBtn" class="ghost-btn" type="button">回首页</button>
+      </div>
+      <div class="summary-box">
+        <strong id="summaryTitle">宝箱打开啦！</strong>
+        <span id="summaryText">本关表现会出现在这里。</span>
+      </div>
+      <div class="report-grid">
+        <div>
+          <span>今日答题</span>
+          <strong id="todayAnsweredText">0</strong>
+        </div>
+        <div>
+          <span>错题复习池</span>
+          <strong id="reviewCountText">0</strong>
+        </div>
+        <div>
+          <span>累计贴纸</span>
+          <strong id="totalStickerText">0</strong>
+        </div>
+      </div>
+      <div class="sticker-board" id="stickerBoard" aria-label="贴纸奖励"></div>
+      <div id="collectionGrid" class="collection-grid"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
